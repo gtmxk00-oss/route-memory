@@ -1,0 +1,34 @@
+plugins { id 'com.android.application' }
+// Release keys never live in the source tree of a shared package; see keystore.properties.example.
+def signing = new Properties()
+def signingFile = [rootProject.file('keystore.properties'), rootProject.file('../../work/release-signing/keystore.properties')].find { it.exists() }
+if (signingFile) signingFile.withInputStream { signing.load(it) }
+android {
+    namespace 'kr.routememory.pleos'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'kr.routememory.pleos'
+        minSdk 29
+        targetSdk 35
+        versionCode 8
+        versionName '0.8.0-coach'
+    }
+    signingConfigs {
+        release {
+            if (signingFile) {
+                storeFile rootProject.file(signing['storeFile'])
+                storePassword signing['storePassword']
+                keyAlias signing['keyAlias']
+                keyPassword signing['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingFile) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation project(':coach') }
