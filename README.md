@@ -11,7 +11,9 @@
 | 판단 규칙 (약한 유형 학습, 필요할 때만 말하기, 운전 유형 프로필) | 구현, 자동 테스트 통과 |
 | 동반앱 시연 화면 (PC, Android) | 구현, 가상 신호로 동작 |
 | Pleos Connect SDK 연동 | 미구현, 2차 PT 심사 전 진행 예정 |
+| 표준 AAOS 에뮬레이터 (Android 15, API 35) | release APK 설치, 실행, 전체 장면 재생 확인 |
 | Pleos Connect Emulator, 실차 구동 | 미검증 |
+| 주행 중 동작 | 미구현. 앱이 DO를 선언하지 않아 주행 상태가 되면 시스템이 화면을 차단하고, 정차하면 돌아옵니다 |
 
 시연 화면의 차량 신호와 내비게이션 정보는 모두 시뮬레이션입니다. 화면에도 항상 표시됩니다.
 
@@ -66,6 +68,7 @@ cd android
 ## 테스트 환경 및 필요한 설정
 
 - Android 10(API 29) 이상. 앱은 Automotive 기기를 대상으로 선언되어 있습니다.
+- 실행 확인 환경: Android Automotive 에뮬레이터 (Android 15, API 35, x86_64, 1024×768). 시연은 정차 상태에서 합니다.
 - 빌드 도구: Gradle 8.11.1, Android Gradle Plugin 8.9.1, Java 17
 - 자동 테스트: JUnit, Robolectric, Node.js 내장 테스트
 - 음성 알림은 기기의 Android 음성 합성을 사용합니다. 한국어 음성이 없으면 화면으로만 표시됩니다.
