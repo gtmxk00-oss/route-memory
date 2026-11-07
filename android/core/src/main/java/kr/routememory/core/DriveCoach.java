@@ -11,7 +11,7 @@ import java.util.Set;
 
 /** Decides when the companion app speaks. Same rules as RouteMemory-PC src/coach.js; change both together. */
 public final class DriveCoach {
-    private static final int WEAK_AFTER=2,LOWER_AFTER=3,STEP_METERS=150,MAX_STEPS=4;
+    private static final int WEAK_AFTER=2,LOWER_AFTER=3,STEP_METERS=150,MAX_STEPS=4,BRIEF_MAX=3;
     private DriveCoach() {}
 
     public enum DriverType {
@@ -40,12 +40,21 @@ public final class DriveCoach {
         public final TurnType type; public final boolean confirmed,becameWeak;
         Review(TurnType type,boolean confirmed,boolean becameWeak){this.type=type;this.confirmed=confirmed;this.becameWeak=becameWeak;}
     }
+    public static final class Place {
+        public final String id,label;
+        public Place(String id,String label){this.id=id;this.label=label;}
+    }
+    public static final class Briefing {
+        public final List<Place> points; public final String speech;
+        Briefing(List<Place> points,String speech){this.points=points;this.speech=speech;}
+    }
     public static final class Profile {
         public final String id,name; public final DriverType driverType;
         final Map<TurnType,Integer> typeMisses=new EnumMap<>(TurnType.class),passStreak=new EnumMap<>(TurnType.class);
         final Set<TurnType> chosenWeak=EnumSet.noneOf(TurnType.class);
         final Set<String> places=new HashSet<>();
         final ArrayDeque<Turn> pending=new ArrayDeque<>();
+        final Set<String> comfortAsks=new HashSet<>(),comfortRoutes=new HashSet<>();
         public int habitMeters,habitSamples;
         public Profile(String id,String name,DriverType driverType){this.id=id;this.name=name;this.driverType=driverType;}
         public int misses(TurnType type){return typeMisses.getOrDefault(type,0);}
@@ -110,4 +119,26 @@ public final class DriveCoach {
         return isWeak(p,turn.type)&&streak>=LOWER_AFTER;
     }
     public static void lowerType(Profile p,TurnType type){p.chosenWeak.remove(type);p.typeMisses.remove(type);p.passStreak.remove(type);}
+    /** Read before departure, and only for remembered points on this route. */
+    public static Briefing briefing(Profile p,List<Place> route,boolean parked,boolean passenger) {
+        List<Place> points=new ArrayList<>();
+        if(!parked||passenger)return new Briefing(points,"");
+        for(Place place:route)if(remembers(p,place.id)&&points.size()<BRIEF_MAX)points.add(place);
+        if(points.isEmpty())return new Briefing(points,"");
+        List<String> labels=new ArrayList<>();
+        for(Place place:points)labels.add(place.label);
+        return new Briefing(points,"이번 길에 기억해 둔 곳이 "+points.size()+"곳 있습니다. "+String.join(", ",labels)+"입니다.");
+    }
+    public static void noteHardMerge(Profile p,String destination){p.comfortAsks.add(destination);}
+    public static boolean usesComfortRoute(Profile p,String destination){return p.comfortRoutes.contains(destination);}
+    public static String comfortOffer(Profile p,String destination,boolean parked,boolean passenger) {
+        if(!parked||passenger||!p.comfortAsks.contains(destination)||usesComfortRoute(p,destination))return "";
+        return "지난번 어려웠던 합류를 피하는 편한 길로 바꿀까요?";
+    }
+    public static void acceptComfort(Profile p,String destination){p.comfortRoutes.add(destination);}
+    /** Erases what this profile learned. Other profiles keep theirs. */
+    public static void clearMemory(Profile p) {
+        p.typeMisses.clear();p.passStreak.clear();p.chosenWeak.clear();p.places.clear();p.pending.clear();p.comfortAsks.clear();p.comfortRoutes.clear();
+        p.habitMeters=0;p.habitSamples=0;
+    }
 }

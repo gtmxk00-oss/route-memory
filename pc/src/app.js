@@ -123,10 +123,10 @@
   function renderLive(){
     const activeRoute=RM.routes[trip?.activeRouteId||routeId],isRunning=running();
     const routePath=paths[activeRoute.id];$('routeLine').setAttribute('d',routePath);$('routeGlow').setAttribute('d',routePath);
-    const color={clear:'#c0ee8c',slow:'#f0bd7b',jam:'#ee8e82'};
+    const color={clear:'var(--sim-good)',slow:'var(--sim-warn)',jam:'var(--danger)'};
     const road=RMTraffic.roadStatus(activeRoute.id,traffic());
-    $('routeLine').setAttribute('stroke',color[road.status]);$('routeGlow').setAttribute('stroke',color[road.status]);
-    $('alternativeLine').setAttribute('stroke',color[RMTraffic.roadStatus(activeRoute.id==='fast'?'easy':'fast',traffic()).status]);
+    $('routeLine').style.stroke=color[road.status];$('routeGlow').style.stroke=color[road.status];
+    $('alternativeLine').style.stroke=color[RMTraffic.roadStatus(activeRoute.id==='fast'?'easy':'fast',traffic()).status];
     $('alternativeLine').setAttribute('d',activeRoute.id==='fast'?paths.easy:paths.fast);
     const total=activeRoute.segments.reduce((n,s)=>n+s.meters,0),remaining=trip?RM.metersLeft(trip):total;
     const progress=trip?Math.max(0,Math.min(1,1-remaining/total)):0;
@@ -167,10 +167,10 @@
     document.body?.classList.toggle('map-mode',view==='real');
     for(const id of ['real','coach','navigation','drive','history','guide'])$(id+'View').hidden=view!==id;
     document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
-    const titles={navigation:['네비게이션','목적지까지, 나에게 맞는 안내로.','출발지와 목적지를 고르고 가상 도시의 길 안내를 시작하세요.'],drive:['시뮬레이터','오늘도, 나에게 맞는 길로.','어려웠던 순간을 기억하고, 다음 길을 미리 준비해요.'],history:['주행 기록','나의 주행이, 다음 안내로.','확인한 실수와 어려웠던 구간을 한곳에서 돌아봐요.'],guide:['사용 방법','한 번의 시연으로 이해하는 길기억.','실수를 경험하고, 확인하고, 달라진 안내를 비교해보세요.']};
-    titles.coach=['동반앱 시연','필요할 때만 말하는 길기억.','운전 유형별로 달라지는 판단을 가상 신호로 확인하세요.'];titles.real=['실제 지도 · GPS','실제 도로 위에서, 현재 위치부터.','지도에서 목적지를 선택하고 GPS 위치를 연결하세요.'];
+    const titles={navigation:['길 안내 시연','길 안내 시연','가상 도시에서 출발지와 목적지를 고르고 안내를 시작합니다.'],drive:['나의 학습','나의 학습','어려웠던 순간을 기억해 다음 안내를 바꿉니다. 교통은 가상 시나리오입니다.'],history:['주행 기록','주행 기록','확인한 실수와 어려웠던 구간을 모아 봅니다.'],guide:['사용 방법','사용 방법','실수를 겪고, 확인하고, 달라진 안내를 비교합니다.']};
+    titles.coach=['동반앱 시연','동반앱 시연','운전 유형별 판단을 가상 신호로 보여 줍니다.'];titles.real=['실제 지도','실제 지도','목적지를 고르고 GPS 위치를 연결합니다.'];
     $('breadcrumb').textContent=titles[view][0];$('pageTitle').textContent=titles[view][1];$('pageSubtitle').textContent=titles[view][2];
-    document.querySelector('.demo-label').innerHTML=view==='real'?'<span class="status-dot"></span>실제 도로 지도<small>GPS는 직접 연결</small>':'<span class="status-dot"></span>가상 주행 모드<small>실제 위치 미사용</small>';
+    document.querySelector('.demo-label').innerHTML=view==='real'?'실제 도로 지도<small>GPS는 직접 연결</small>':'가상 주행 모드<small>실제 위치 미사용</small>';
     if(view==='history')renderHistory();
     document.dispatchEvent(new CustomEvent('rm-view-changed',{detail:{view}}));
   }

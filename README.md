@@ -8,14 +8,16 @@
 
 | 구분 | 상태 |
 | --- | --- |
-| 판단 규칙 (약한 유형 학습, 필요할 때만 말하기, 운전 유형 프로필) | 구현, 자동 테스트 통과 |
+| 판단 규칙 (약한 유형 학습, 필요할 때만 말하기, 운전 유형 프로필, 출발 전 브리핑, 편한 길 제안, 프로필별 기억 삭제) | 구현, 자동 테스트 통과 |
 | 동반앱 시연 화면 (PC, Android) | 구현, 가상 신호로 동작 |
+| 동반앱 실제 위치 모드 (PC, Android) | 구현. 이 기기의 GPS로 위치·속도·정확도를 실시간 표시하고, 저장한 기억 지점에 다가가면 음성으로 알립니다. 방향지시등·내비게이션 정보는 아직 받지 못합니다 |
+| 실제 지도, 장소 검색, 경로, 주변 주유소·주차장, 위성지도 (PC, Android 시제품) | 구현, 공개 지도 서비스 사용. 실유가·주차 잔여 면수·고화질 항공영상·실시간 교통은 연결 전 |
 | Pleos Connect SDK 연동 | 미구현, 2차 PT 심사 전 진행 예정 |
 | 표준 AAOS 에뮬레이터 (Android 15, API 35) | release APK 설치, 실행, 전체 장면 재생 확인 |
 | Pleos Connect Emulator, 실차 구동 | 미검증 |
 | 주행 중 동작 | 미구현. 앱이 DO를 선언하지 않아 주행 상태가 되면 시스템이 화면을 차단하고, 정차하면 돌아옵니다 |
 
-시연 화면의 차량 신호와 내비게이션 정보는 모두 시뮬레이션입니다. 화면에도 항상 표시됩니다.
+시연 화면의 차량 신호와 내비게이션 정보는 모두 시뮬레이션입니다. 실제 위치 모드는 위치만 실제이고 방향지시등과 내비게이션 정보는 없습니다. 두 화면 모두 이 사실을 항상 표시합니다.
 
 ## 저장소 구성
 
@@ -23,8 +25,8 @@
 | --- | --- |
 | `android/` | Android Gradle 프로젝트 |
 | `android/core/` | 판단 규칙 `DriveCoach`, 시연 장면 `CoachDemo` (순수 Java) |
-| `android/coach/` | 동반앱 시연 화면 |
-| `android/pleos/` | 제출용 앱. 위치·네트워크·차량 권한을 쓰지 않습니다 |
+| `android/coach/` | 동반앱 시연 화면과 실제 위치 모드 |
+| `android/pleos/` | 제출용 앱. 실제 위치 모드를 켤 때만 위치 권한을 요청하며, 네트워크·차량 권한은 쓰지 않습니다 |
 | `android/shared/`, `mobile/`, `automotive/` | 이전 단계의 지도 내비게이션 시제품 |
 | `pc/` | PC 웹 시연. `src/coach.js`가 Android와 같은 규칙입니다 |
 | `apk/` | 실행용 release APK |
@@ -41,6 +43,8 @@ adb install apk/Sogangdai_길기억_release.apk
 
 앱 목록에서 길기억을 열고 재생을 누르면 장면이 이어집니다. 아래 장면 버튼으로 원하는 장면을 바로 볼 수 있습니다.
 
+실제 위치 버튼을 누르면 이 기기의 GPS로 동작하는 화면이 열립니다. 위치 켜기를 누를 때 위치 권한을 묻습니다. 헷갈린 곳에서 여기 헷갈려를 누르면 기억 지점으로 저장하고, 다음에 그 지점에 다가가면 음성으로 알립니다. 에뮬레이터에서는 `adb emu geo fix <경도> <위도>`로 위치를 넣어 볼 수 있습니다.
+
 ### PC 웹 시연
 
 Node.js 22 이상이 필요합니다. 별도 패키지 설치는 없습니다.
@@ -52,7 +56,7 @@ npm run build
 node serve.cjs
 ```
 
-브라우저에서 `http://127.0.0.1:4173/`을 열고 왼쪽 메뉴의 동반앱 시연을 누릅니다.
+브라우저에서 `http://127.0.0.1:4173/`을 열고 왼쪽 메뉴의 동반앱 시연을 누릅니다. 위의 실제 위치 버튼을 누르면 브라우저 위치로 같은 기능을 쓸 수 있습니다.
 
 ### 소스에서 Android 빌드
 
@@ -60,7 +64,7 @@ JDK 17과 Android SDK 35가 필요합니다.
 
 ```
 cd android
-./gradlew :core:verifyCoach :coach:testDebugUnitTest :pleos:assembleDebug
+./gradlew :core:verifyCoach :core:verifyLive :coach:testDebugUnitTest :pleos:assembleDebug
 ```
 
 서명된 release APK를 만들려면 `keystore.properties.example`을 참고해 `keystore.properties`를 만든 뒤 `:pleos:assembleRelease`를 실행합니다.
@@ -72,6 +76,7 @@ cd android
 - 빌드 도구: Gradle 8.11.1, Android Gradle Plugin 8.9.1, Java 17
 - 자동 테스트: JUnit, Robolectric, Node.js 내장 테스트
 - 음성 알림은 기기의 Android 음성 합성을 사용합니다. 한국어 음성이 없으면 화면으로만 표시됩니다.
+- 실제 위치 모드는 위치 권한이 필요합니다. 위치는 기기 밖으로 보내지 않고, 기억 지점은 기기(브라우저)에만 저장됩니다.
 - API 키나 계정 설정은 필요하지 않습니다.
 
 ## APK 파일 위치

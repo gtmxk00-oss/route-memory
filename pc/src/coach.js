@@ -20,7 +20,7 @@
     roundabout: Object.freeze({ label: '회전교차로', subject: '회전교차로가', side: null }),
     'narrow-road': Object.freeze({ label: '좁은 길', subject: '좁은 길이', side: null })
   });
-  const WEAK_AFTER = 2, LOWER_AFTER = 3, STEP_METERS = 150, MAX_STEPS = 4;
+  const WEAK_AFTER = 2, LOWER_AFTER = 3, STEP_METERS = 150, MAX_STEPS = 4, BRIEF_MAX = 3;
   const owns = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
   const typeOf = id => {
     if (!owns(turnTypes, id)) throw new TypeError('Unknown turn type');
@@ -30,7 +30,7 @@
   function createProfile(id, name, driverType = 'general') {
     if (!owns(driverTypes, driverType)) throw new TypeError('Unknown driver type');
     return { id: String(id), name: String(name), driverType, typeMisses: {}, passStreak: {},
-      chosenWeak: [], places: [], habitMeters: null, habitSamples: 0, pending: [] };
+      chosenWeak: [], places: [], habitMeters: null, habitSamples: 0, pending: [], comfortAsks: [], comfortRoutes: [] };
   }
   function misses(profile, type) { return profile.typeMisses[type] || 0; }
   function chooseWeak(profile, type) {
@@ -97,6 +97,26 @@
     delete profile.typeMisses[type];
     delete profile.passStreak[type];
   }
+  const privateMoment = state => Boolean(state.parked) && !state.passenger;
+  // Read before departure, and only for remembered points on this route.
+  function briefing(profile, routePlaces, state) {
+    if (!privateMoment(state)) return { points: [], speech: '' };
+    const points = routePlaces.filter(place => remembers(profile, place.id)).slice(0, BRIEF_MAX);
+    if (!points.length) return { points, speech: '' };
+    return { points, speech: '이번 길에 기억해 둔 곳이 ' + points.length + '곳 있습니다. ' + points.map(place => place.label).join(', ') + '입니다.' };
+  }
+  function noteHardMerge(profile, destination) { if (!profile.comfortAsks.includes(destination)) profile.comfortAsks.push(destination); }
+  function usesComfortRoute(profile, destination) { return profile.comfortRoutes.includes(destination); }
+  function comfortOffer(profile, destination, state) {
+    if (!privateMoment(state) || !profile.comfortAsks.includes(destination) || usesComfortRoute(profile, destination)) return '';
+    return '지난번 어려웠던 합류를 피하는 편한 길로 바꿀까요?';
+  }
+  function acceptComfort(profile, destination) { if (!usesComfortRoute(profile, destination)) profile.comfortRoutes.push(destination); }
+  // Erases what this profile learned. Other profiles keep theirs.
+  function clearMemory(profile) {
+    Object.assign(profile, { typeMisses: {}, passStreak: {}, chosenWeak: [], places: [], habitMeters: null, habitSamples: 0, pending: [], comfortAsks: [], comfortRoutes: [] });
+  }
   return Object.freeze({ driverTypes, turnTypes, createProfile, misses, chooseWeak, isWeak, remembers, decisionMeters,
-    decide, decidePoint, addMemo, noteMiss, canReview, review, notePass, lowerType });
+    decide, decidePoint, addMemo, noteMiss, canReview, review, notePass, lowerType,
+    briefing, noteHardMerge, comfortOffer, acceptComfort, usesComfortRoute, clearMemory });
 });

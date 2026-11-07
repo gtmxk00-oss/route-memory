@@ -164,11 +164,48 @@ const sceneState = (id, offset) => {
   return D.stateAt(item.start + offset, line);
 };
 
+test('the briefing reads at most three remembered points on this route, parked and alone', () => {
+  const profile = C.createProfile('a', 'A');
+  const route = [{ id: 'r1', label: '가' }, { id: 'r2', label: '나' }, { id: 'r3', label: '다' }, { id: 'r4', label: '라' }, { id: 'r5', label: '마' }];
+  for (const id of ['r1', 'r2', 'r3', 'r4', 'elsewhere']) C.addMemo(profile, id);
+  const said = C.briefing(profile, route, { parked: true, passenger: false });
+  assert.deepEqual(said.points.map(place => place.id), ['r1', 'r2', 'r3']);
+  assert.match(said.speech, /3곳.*가, 나, 다입니다/);
+  assert.equal(C.briefing(profile, route, { parked: false, passenger: false }).speech, '');
+  assert.equal(C.briefing(profile, route, { parked: true, passenger: true }).speech, '');
+  assert.equal(C.briefing(C.createProfile('b', 'B'), route, { parked: true, passenger: false }).speech, '');
+});
+test('the comfort route is offered once, parked and alone, and changes only after approval', () => {
+  const profile = C.createProfile('a', 'A'), alone = { parked: true, passenger: false };
+  assert.equal(C.comfortOffer(profile, 'hospital', alone), '');
+  C.noteHardMerge(profile, 'hospital');
+  assert.equal(C.comfortOffer(profile, 'other', alone), '');
+  assert.equal(C.comfortOffer(profile, 'hospital', { parked: false, passenger: false }), '');
+  assert.equal(C.comfortOffer(profile, 'hospital', { parked: true, passenger: true }), '');
+  assert.ok(C.comfortOffer(profile, 'hospital', alone));
+  assert.equal(C.usesComfortRoute(profile, 'hospital'), false);
+  C.acceptComfort(profile, 'hospital');
+  assert.equal(C.usesComfortRoute(profile, 'hospital'), true);
+  assert.equal(C.comfortOffer(profile, 'hospital', alone), '');
+});
+test('clearing a profile forgets it and leaves other profiles alone', () => {
+  const a = C.createProfile('a', 'A'), b = C.createProfile('b', 'B'), turn = { id: 'e', type: 'exit-left' };
+  for (const profile of [a, b]) { C.noteMiss(profile, turn); C.review(profile, true); C.chooseWeak(profile, 'roundabout'); C.noteHardMerge(profile, 'x'); }
+  C.clearMemory(a);
+  assert.equal(C.remembers(a, 'e'), false);
+  assert.equal(C.isWeak(a, 'roundabout'), false);
+  assert.equal(C.comfortOffer(a, 'x', { parked: true }), '');
+  assert.equal(C.remembers(b, 'e'), true);
+  assert.equal(C.isWeak(b, 'roundabout'), true);
+});
 test('the demo tells only what the rules decide', () => {
   const events = D.events().filter(e => e.kind === 'alert').map(e => e.text);
   assert.deepEqual(events, [
-    '아까 그 출구, 놓치셨나요?', '아까 그 출구, 놓치셨나요?',
+    '아까 그 출구, 놓치셨나요?', '아까 그 출구, 놓치셨나요?', '아까 그 출구, 놓치셨나요?',
     '왼쪽 출구가 곧 나옵니다. 미리 준비하세요.',
+    '왼쪽 출구 알림을 줄여도 될까요?',
+    '이번 길에 기억해 둔 곳이 3곳 있습니다. 강변 합류, 다리 앞 분기, 시장 앞 출구입니다.',
+    '지난번 어려웠던 합류를 피하는 편한 길로 바꿀까요?',
     '왼쪽 출구 준비하세요.', '아까 그 출구, 놓치셨나요?',
     '오른쪽 출구가 곧 나옵니다. 미리 준비하세요.',
     '좁은 길이 곧 나옵니다. 미리 준비하세요.',
@@ -199,6 +236,37 @@ test('truck judges earlier than the general base distance', () => {
   assert.equal(sceneState('truck', 1).limit, 600);
 });
 
+const sceneAt = (id, offset) => { const item = D.timeline().items.find(entry => entry.scene.id === id); return D.stateAt(item.start + offset); };
+test('choosing a weak type in setup shows at once', () => {
+  assert.deepEqual(sceneAt('setup', 1).learned.weak, []);
+  assert.deepEqual(sceneAt('setup', 3).learned.weak, ['회전교차로']);
+});
+test('answering no records nothing', () => {
+  const before = sceneAt('decline', 0.1).learned, after = sceneAt('decline', 14);
+  assert.equal(after.phase, 'declined');
+  assert.deepEqual(after.learned, before);
+});
+test('lowering waits for the driver and removes the weak type', () => {
+  assert.deepEqual(sceneAt('lower', 3).learned.weak, ['왼쪽 출구']);
+  assert.deepEqual(sceneAt('lower', 7).learned.weak, []);
+});
+test('the briefing scene speaks three of the four points on the route', () => {
+  const step = sceneAt('briefing', 3).step;
+  assert.equal(step.speak, true);
+  assert.match(step.text, /3곳/);
+  assert.ok(D.events().some(event => event.kind === 'alert' && event.text === step.text));
+});
+test('the parent memo offers the comfort route and the child hears nothing there', () => {
+  assert.match(sceneAt('comfort-offer', 3).step.text, /편한 길/);
+  const child = sceneAt('family', 4.5);
+  assert.equal(child.decision.action, 'none');
+  assert.equal(child.spoken, '');
+});
+test('erasing forgets only the parent profile', () => {
+  assert.match(sceneAt('erase', 1).step.text, /5곳/);
+  assert.equal(sceneAt('erase', 3).learned.places, 0);
+  assert.equal(sceneAt('taxi', 0.1).learned.places, 1);
+});
 test('state is a pure function of time', () => {
   assert.deepEqual(D.stateAt(40).decision, D.stateAt(40).decision);
   assert.equal(D.stateAt(1e9).scene.id, 'outro');

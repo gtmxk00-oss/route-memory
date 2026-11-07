@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | Leaflet 1.9.4 | `pc/vendor/` | BSD 2-Clause (`pc/vendor/LICENSE-Leaflet.txt`) |
 | Hallmark 디자인 지침 | 화면 디자인 참고 | MIT (`pc/licenses/Hallmark-LICENSE.txt`) |
+| Pretendard Std 1.3.9 | `pc/vendor/`, PC 화면 글꼴 | SIL Open Font License 1.1 (`pc/vendor/LICENSE-Pretendard.txt`) |
 | AndroidX Core, AndroidX Car App Library | `android/shared`, `mobile`, `automotive` | Apache License 2.0 |
 | JUnit 4 | 테스트 | Eclipse Public License 1.0 |
 | Robolectric | 테스트 | MIT |

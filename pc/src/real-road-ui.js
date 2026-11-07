@@ -1,5 +1,8 @@
 (function(){
   'use strict';
+  // Leaflet takes plain colours, so map marks read the current theme tokens when they are drawn.
+  const FALLBACK={'--accent':'#ff6a1a','--ink':'#17181c','--surface':'#fbfaf7','--sim-route':'#ff7a26','--rule-strong':'#bdb7ab'};
+  const token=name=>(typeof getComputedStyle==='function'&&getComputedStyle(document.documentElement).getPropertyValue(name).trim())||FALLBACK[name];
   const $=id=>document.getElementById(id),app=window.RMApp,T=RMRoadTracker;
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const sample={origin:{lat:37.5665,lon:126.9780},destination:{lat:37.5796,lon:126.9770}};
@@ -213,13 +216,13 @@
   function clearLines(){if(!map)return;for(const layer of routeLayers)map.removeLayer(layer);routeLayers=[];}
   function drawEndpoints(){
     if(!map)return;for(const layer of endpointLayers)map.removeLayer(layer);endpointLayers=[];
-    for(const [id,color,label]of[['realOrigin','#246bfd','출발지'],['realDestination','#172b4d','목적지']]){
-      try{const p=parse($(id).value),name=id==='realDestination'?chosenPlace()?.name:null;endpointLayers.push(L.circleMarker([p.lat,p.lon],{radius:8,color:'#fff',weight:2,fillColor:color,fillOpacity:1}).addTo(map).bindTooltip(esc(name||label),{permanent:true,direction:'top',className:'real-endpoint-label'}));}catch{}
+    for(const [id,color,label]of[['realOrigin',token('--accent'),'출발지'],['realDestination',token('--ink'),'목적지']]){
+      try{const p=parse($(id).value),name=id==='realDestination'?chosenPlace()?.name:null;endpointLayers.push(L.circleMarker([p.lat,p.lon],{radius:8,color:token('--surface'),weight:2,fillColor:color,fillOpacity:1}).addTo(map).bindTooltip(esc(name||label),{permanent:true,direction:'top',className:'real-endpoint-label'}));}catch{}
     }
   }
   function drawRoutes(fit){
     if(!map)return;clearLines();
-    routes.forEach((r,i)=>{const line=L.polyline(r.geometry.map(c=>[c[1],c[0]]),{color:i===selected?'#246bfd':'#94a6bb',weight:i===selected?7:4,opacity:i===selected?.95:.6}).addTo(map);line.on('click',()=>{if(!navigating){selected=i;tracker=null;drawRoutes(false);render();}});routeLayers.push(line);});
+    routes.forEach((r,i)=>{const line=L.polyline(r.geometry.map(c=>[c[1],c[0]]),{color:i===selected?token('--sim-route'):token('--rule-strong'),weight:i===selected?7:4,opacity:i===selected?.95:.6}).addTo(map);line.on('click',()=>{if(!navigating){selected=i;tracker=null;drawRoutes(false);render();}});routeLayers.push(line);});
     if(routeLayers[selected]){routeLayers[selected].bringToFront();if(fit){const narrow=window.innerWidth<=760,bottom=mapStyle!=='road'?(window.innerHeight<=650?305:325):285;map.fitBounds(routeLayers[selected].getBounds(),{paddingTopLeft:narrow?[30,245]:[365,170],paddingBottomRight:narrow?[110,bottom]:[205,85],maxZoom:17});}}
     drawEndpoints();
   }
@@ -252,7 +255,7 @@
   function drawGps(){
     if(!map||!lastFix)return;
     const point=[lastFix.lat,lastFix.lon];
-    if(!gpsMarker){gpsMarker=L.circleMarker(point,{radius:8,color:'#fff',weight:3,fillColor:'#156ce0',fillOpacity:1}).addTo(map);gpsCircle=L.circle(point,{radius:lastFix.accuracy,color:'#4181d5',weight:1,fillColor:'#5098f1',fillOpacity:.12}).addTo(map);}
+    if(!gpsMarker){gpsMarker=L.circleMarker(point,{radius:8,color:token('--surface'),weight:3,fillColor:'#156ce0',fillOpacity:1}).addTo(map);gpsCircle=L.circle(point,{radius:lastFix.accuracy,color:'#4181d5',weight:1,fillColor:'#5098f1',fillOpacity:.12}).addTo(map);}
     else{gpsMarker.setLatLng(point);gpsCircle.setLatLng(point).setRadius(lastFix.accuracy);}
     gpsMarker.bringToFront();if(follow)map.panTo(point,{animate:false});
   }
@@ -313,7 +316,7 @@
     $('realFollow').setAttribute('aria-pressed',String(follow));
     if($('realGpsChip'))$('realGpsChip').setAttribute('data-connected',String(gpsOn&&freshFix()));
     $('realGpsStatus').textContent=gpsOn?(lastFix?(freshFix()?'GPS 연결됨':'GPS 신호 대기 · 정확도 확인'):'GPS 권한·위치 확인 중'):'GPS 꺼짐';
-    $('realAccuracy').textContent=lastFix?'정확도 ±'+Math.round(lastFix.accuracy)+'m':'정확도 —';
+    $('realAccuracy').textContent=lastFix?'정확도 ±'+Math.round(lastFix.accuracy)+'m':'정확도 -';
     document.querySelectorAll('[data-real-point]').forEach(b=>b.disabled=navigating);
     renderNearby();
   }
@@ -327,7 +330,7 @@
     }catch{uiText('realDestinationName','어디로 갈까요?');uiText('realOriginName','지도로 출발지와 목적지 선택');}
     const remaining=tracker&&navigating?tracker.remainingSeconds:route?.durationSeconds;
     const distance=tracker&&navigating?tracker.remainingMeters:route?.distanceMeters;
-    uiText('realEtaValue',Number.isFinite(remaining)?Math.max(1,Math.ceil(remaining/60)):'—');
+    uiText('realEtaValue',Number.isFinite(remaining)?Math.max(1,Math.ceil(remaining/60)):'-');
     uiText('realEtaUnit','분');
     uiText('realArrivalTime',Number.isFinite(remaining)?new Date(Date.now()+remaining*1000).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})+' 도착 예정':'목적지까지, 나에게 맞게');
     uiText('realDistanceValue',Number.isFinite(distance)?(distance/1000).toFixed(1)+'km · '+(navigating?'GPS 길 안내 중':'실제 경로 미리 보기'):'실제 도로 경로를 찾아보세요');

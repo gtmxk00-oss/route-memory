@@ -51,6 +51,13 @@ public class CoachActivityTest {
         assertTrue(texts(controller.get()).contains("재생"));
         assertEquals(false,texts(controller.get()).contains("일시정지"));
     }
+    @Test public void parkedScenesShowWhatTheRulesSaid() {
+        CoachActivity activity=Robolectric.buildActivity(CoachActivity.class).setup().get();
+        press(activity,"가족 · 출발 전 브리핑");
+        List<String> shown=texts(activity);
+        assertTrue(shown.contains("정차 중"));
+        assertTrue(shown.contains("목적지 병원 · 정차 중".replaceAll("(?<=[^ ])(?=[^ ])","\u2060")));
+    }
     @Test public void busSceneHasNoRouteHeadline() {
         CoachActivity activity=Robolectric.buildActivity(CoachActivity.class).setup().get();
         press(activity,"버스 · 다음 운행");

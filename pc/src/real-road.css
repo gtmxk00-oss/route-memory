@@ -2,11 +2,11 @@
 /* Critique: preserve destination search, nearby results, GPS and map wiring; replace stacked ornamental cards with one navigation work surface. */
 /* Browser review: CUA only under the host tool policy. Legacy simulation screens retain their content and interactions. */
 :root{
-  --rm-ink:#142a3b;--rm-muted:#526373;--rm-subtle:#667785;--rm-surface:#ffffff;--rm-soft:#f3f6f8;--rm-line:#dce4ea;
-  --rm-blue:#246bfd;--rm-blue-text:#1455d4;--rm-blue-hover:#1455d4;--rm-blue-soft:#edf3ff;--rm-green:#064c3e;--rm-green-soft:#d9eee7;
-  --rm-map:#e4ecea;--rm-amber:#996a17;--rm-focus:#1059db;--rm-scrim:rgba(20,42,59,.10);--rm-translucent:rgba(255,255,255,.96);
-  --rm-shadow:0 8px 26px var(--rm-scrim);--rm-font:'Segoe UI','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
-  --rm-symbol-font:Arial,sans-serif;--rm-radius:16px;--rm-control-radius:10px;--rm-navigation-inset:24px;
+  --rm-ink:var(--ink);--rm-muted:var(--ink-2);--rm-subtle:var(--ink-3);--rm-surface:var(--surface);--rm-soft:var(--surface-2);--rm-line:var(--rule);
+  --rm-blue:var(--accent);--rm-blue-text:var(--accent-text);--rm-blue-hover:var(--accent-hover);--rm-blue-soft:var(--accent-soft);--rm-green:var(--strong);--rm-green-soft:var(--ok-soft);
+  --rm-map:var(--canvas);--rm-amber:var(--warn);--rm-focus:var(--focus);--rm-scrim:var(--shade);--rm-translucent:var(--surface);
+  --rm-shadow:0 8px 26px var(--rm-scrim);--rm-font:var(--font);
+  --rm-symbol-font:var(--font);--rm-radius:16px;--rm-control-radius:10px;--rm-navigation-inset:24px;
 }
 html,body{overflow-x:clip}
 .map-mode{background:var(--rm-map);font-family:var(--rm-font)}

@@ -10,6 +10,11 @@ tasks.register('verifyCoach', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'kr.routememory.core.DriveCoachTest'
 }
+tasks.register('verifyLive', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'kr.routememory.core.LiveCoachTest'
+}
 tasks.register('verifyRoadTracker', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath

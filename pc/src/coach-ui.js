@@ -10,10 +10,12 @@
     'question-waiting':'승객이 내릴 때까지 질문을 미룹니다',
     question:state.scene.question,
     learned:'운전자가 확인했습니다',
+    declined:'운전자가 아니요라고 답해 기록하지 않았습니다',
     memo:'“'+(state.scene.memoText||'')+'”',
     'memo-saved':'기억 지점으로 저장했습니다'
   }[state.phase]||'');
   function statusOf(state){
+    if(state.phase==='parked')return{key:state.step.speak?'speak':'note',label:state.step.label,text:state.step.text};
     if(state.speaking)return{key:'speak',label:'말하는 중',text:state.spoken};
     const text=phaseText(state);
     if(text)return{key:state.phase==='question'?'speak':'note',label:state.phase==='question'?'정차 중 질문':'기록',text};
@@ -26,9 +28,9 @@
   function roadSvg(state){
     const type=state.scene.turn?C.turnTypes[state.scene.turn.type]:null;
     const left=type?.side!=='right',from=state.scene.from||1,progress=state.meters===null?0:1-state.meters/from;
-    const branch=type?.side?(left?'M240 120 C200 80 140 60 40 40':'M240 120 C280 80 340 60 440 40'):'';
-    const noRoute=state.scene.noRoute,missed=['rerouting','question-waiting','question','learned'].includes(state.phase),took=state.phase==='passed'&&Boolean(branch);
-    const y=missed?56:took?56:320-progress*200,x=took?(left?110:370):240;
+    const branch=type?.side?(left?'M240 120 C200 80 120 56 -80 40':'M240 120 C280 80 360 56 560 40'):'';
+    const noRoute=state.scene.noRoute,missed=['rerouting','question-waiting','question','learned','declined'].includes(state.phase),took=state.phase==='passed'&&Boolean(branch);
+    const y=missed?56:took?71:290-progress*170,x=took?(left?140:340):240;
     return'<svg viewBox="0 0 480 360" aria-hidden="true"><path class="coach-road" d="M240 360 L240 0"/>'+(branch?'<path class="coach-road" d="'+branch+'"/>':'')+
       '<path class="coach-lane" d="M240 360 L240 0"/>'+(noRoute?'':branch?'<path class="coach-route" d="M240 360 L240 120 '+branch.slice(branch.indexOf('C'))+'"/>':'<path class="coach-route" d="M240 360 L240 0"/>')+
       '<circle class="coach-car" cx="'+x+'" cy="'+y.toFixed(1)+'" r="13"/></svg>';
@@ -38,11 +40,11 @@
     return'<div class="coach-signal" aria-label="방향지시등">'+lamp('left','◀')+'<small>방향지시등</small>'+lamp('right','▶')+'</div>';
   }
   function card(state){
-    return'<div class="coach-card-scene"><div class="coach-card-brand">ROUTE MEMORY</div><h2>'+esc(state.scene.title)+'</h2><p>'+esc(state.scene.lead)+'</p></div>';
+    return'<div class="coach-card-scene"><div class="coach-card-brand">길기억</div><h2>'+esc(state.scene.title)+'</h2><p>'+esc(state.scene.lead)+'</p></div>';
   }
   function drive(state){
     const status=statusOf(state),turn=state.scene.turn?C.turnTypes[state.scene.turn.type]:null;
-    const heading=state.scene.noRoute?'내비게이션 경로 없음':(turn?turn.label:'');
+    const heading=state.phase==='parked'?'정차 중':state.scene.noRoute?'내비게이션 경로 없음':(turn?turn.label:'');
     const distance=state.meters===null?'':state.meters+'m';
     const learned=state.learned||{weak:[],places:0};
     return'<div class="coach-navi"><div class="coach-navi-head"><span>가상 내비게이션</span><strong>'+esc(heading)+'</strong><b>'+esc(distance)+'</b></div><div class="coach-road-wrap">'+roadSvg(state)+'</div>'+signalHtml(state)+'</div>'+
@@ -92,7 +94,10 @@
     list.innerHTML=D.scenes.map((s,i)=>'<button type="button" data-coach-scene="'+i+'">'+esc(s.tag||s.title)+'</button>').join('');
     list.addEventListener('click',e=>{const b=e.target.closest('[data-coach-scene]');if(b)jump(Number(b.dataset.coachScene));});
   }
-  document.addEventListener('rm-view-changed',e=>{if(e.detail.view==='coach')render(position);else setPlaying(false);});
+  // The live mode owns the stage while it is on.
+  const liveMode=()=>document.body.classList.contains('coach-live');
+  document.addEventListener('rm-view-changed',e=>{if(e.detail.view==='coach'){if(!liveMode())render(position);}else setPlaying(false);});
+  document.addEventListener('rm-coach-mode',e=>{if(e.detail.mode==='demo')render(position);else setPlaying(false);});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')document.body.classList.remove('coach-fullscreen');});
   // Frame-accurate entry point used to record the submission video.
   window.RMCoachStage={seek:render,setDurations(durations){line=D.timeline(durations);return line.total;},events:()=>D.events(line),total:()=>line.total};
